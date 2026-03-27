@@ -17,16 +17,11 @@
       display: flex; flex-direction: column;
       align-items: center; text-align: center;
     }
-    .label-text {
-      margin-top: 8px;
+    #tag-label {
+      margin-top: 15px;
       font-weight: bold;
-      font-size: 1.2rem;
+      font-size: 1.4rem; /* Larger for easy reading */
       color: black;
-    }
-    .tag-text {
-      font-size: 1rem;
-      margin-top: 2px;
-      color: #333;
     }
   </style>
 </head>
@@ -38,7 +33,7 @@
   function generateQRCode(qrData) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const size = 0.70 * Math.min(vw, vh); // Adjusted to leave room for two lines of text
+    const size = 0.75 * Math.min(vw, vh); 
     
     const canvas = document.createElement('canvas');
     new QRious({
@@ -53,9 +48,7 @@
   grist.ready({
     columns: [
       { name: "Link", title: "QR Link" },
-      { name: "Type", title: "Asset Type" },
-      { name: "Brand", title: "Brand" },
-      { name: "Tag", title: "Asset Tag" } // Ensure this matches your mapping
+      { name: "Tag", title: "Asset Tag" }
     ],
     requiredAccess: 'read table'
   });
@@ -69,21 +62,19 @@
       // 1. QR Code
       content.appendChild(generateQRCode(record.Link));
 
-      // 2. Asset Type - Brand
-      const typeText = (typeof record.Type === 'object' && record.Type !== null) 
-                       ? record.Type.label || Object.values(record.Type)[0] 
-                       : record.Type;
-      
-      const line1 = document.createElement('div');
-      line1.className = 'label-text';
-      line1.innerText = `${typeText}-${record.Brand}`;
-      content.appendChild(line1);
+      // 2. Asset Tag Logic (Handling Reference Columns)
+      let displayTag = "";
+      if (record.Tag) {
+        displayTag = (typeof record.Tag === 'object') 
+                     ? record.Tag.label || Object.values(record.Tag)[0] 
+                     : record.Tag;
+      }
 
-      // 3. Asset Tag (New Line)
-      const line2 = document.createElement('div');
-      line2.className = 'tag-text';
-      line2.innerText = record.Tag || ""; 
-      content.appendChild(line2);
+      // 3. Render Tag below QR
+      const label = document.createElement('div');
+      label.id = 'tag-label';
+      label.innerText = displayTag;
+      content.appendChild(label);
     }
 
     window.addEventListener("resize", update_view);
