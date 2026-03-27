@@ -11,22 +11,16 @@
       align-items: center; justify-content: center; 
       height: 100vh; font-family: sans-serif; 
     }
-    #container { display: flex; flex-direction: column; align-items: center; width: 100%; }
     #tag { 
-      margin-top: 15px; 
-      font-weight: bold; 
-      font-size: 1.6rem; 
-      color: black; 
-      min-height: 1.6em; /* Keeps space even if empty */
+      margin-top: 15px; font-weight: bold; 
+      font-size: 1.6rem; color: black; text-align: center;
     }
-    canvas { max-width: 90%; height: auto; }
+    canvas { max-width: 80%; height: auto; }
   </style>
 </head>
 <body>
-  <div id="container">
-    <canvas id="qr"></canvas>
-    <div id="tag">Loading Tag...</div>
-  </div>
+  <canvas id="qr"></canvas>
+  <div id="tag">Waiting for Mapping...</div>
 
 <script>
   const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
@@ -41,26 +35,15 @@
 
   grist.onRecord(function(record) {
     const tagDiv = document.getElementById('tag');
-
-    // 1. Update QR
     const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
     qr.size = size;
-    qr.value = record.Link || "No Data";
+    qr.value = record.Link || "";
 
-    // 2. Robust Tag Extraction
-    let rawVal = record.Tag;
-    let finalLabel = "";
-
-    if (rawVal !== null && rawVal !== undefined) {
-      if (typeof rawVal === 'object') {
-        // Handle Reference or complex formula objects
-        finalLabel = rawVal.label || Object.values(rawVal)[0] || String(rawVal);
-      } else {
-        finalLabel = String(rawVal);
-      }
+    let val = record.Tag;
+    if (val && typeof val === 'object') {
+      val = val.label || Object.values(val)[0] || String(val);
     }
-
-    tagDiv.innerText = finalLabel || "Waiting for Mapping...";
+    tagDiv.innerText = val || "Map Column in Right Panel";
   });
 </script>
 </body>
