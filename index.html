@@ -8,25 +8,26 @@
   <style>
     body {
       margin: 0;
-      padding: 0;
+      padding: 10px;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       height: 100vh;
-      overflow: hidden;
+      background-color: white;
     }
     #content {
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
     }
     #label {
-      margin-top: 10px;
+      margin-top: 15px;
       font-family: sans-serif;
       font-weight: bold;
-      font-size: 1.2rem;
-      color: #333;
+      font-size: 1.5rem; /* Larger text for readability */
+      color: black;
+      text-align: center;
     }
   </style>
 </head>
@@ -36,43 +37,44 @@
 
 <script>
   function generateQRCode(qrData) {
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    // Reduce size slightly more to make room for text below
-    const size = 0.80 * Math.min(vw, vh);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const size = 0.75 * Math.min(vw, vh);
     
     const canvas = document.createElement('canvas');
     new QRious({
       element: canvas,
-      level: 'L',
+      level: 'H', // High error correction for better scanning
       size: size,
-      value: qrData
+      value: qrData || ""
     });
     return canvas;
   }
 
-  // Map the specific columns from your Grist table
+  // Define the columns the widget needs
   grist.ready({
-    columns: ['Asset Type', 'Brand', 'Link'], 
+    columns: [
+      { name: "Link", title: "QR Link/Data", optional: false },
+      { name: "Type", title: "Asset Type", optional: false },
+      { name: "Brand", title: "Brand", optional: false }
+    ],
     requiredAccess: 'read table'
   });
 
   grist.onRecord(function(record) {
     const content = document.getElementById('content');
-    const mapped = grist.mapColumnNames(record);
-
+    
     function update_view() {
       content.innerHTML = '';
-
-      // 1. Generate the QR Code (usually linked to the URL/ID)
-      // If you want the QR to contain the Link column, use mapped.Link
-      const qrCanvas = generateQRCode(mapped.Link || "No Data");
+      
+      // Generate QR using the 'Link' column
+      const qrCanvas = generateQRCode(record.Link);
       content.appendChild(qrCanvas);
 
-      // 2. Create the Text Label (Asset Type - Brand)
+      // Create Label: Type-Brand
       const label = document.createElement('div');
       label.id = 'label';
-      label.innerText = `${mapped.Asset_Type}-${mapped.Brand}`;
+      label.innerText = `${record.Type}-${record.Brand}`;
       
       content.appendChild(label);
     }
