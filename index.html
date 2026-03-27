@@ -1,40 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  
-  <style>
-    body {
-      margin: 0;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background-color: white;
-    }
-    #content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #label {
-      margin-top: 15px;
-      font-family: sans-serif;
-      font-weight: bold;
-      font-size: 1.5rem; /* Larger text for readability */
-      color: black;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-
-<div id="content"></div>
-
 <script>
   function generateQRCode(qrData) {
     const vw = window.innerWidth;
@@ -44,18 +7,17 @@
     const canvas = document.createElement('canvas');
     new QRious({
       element: canvas,
-      level: 'H', // High error correction for better scanning
+      level: 'H',
       size: size,
       value: qrData || ""
     });
     return canvas;
   }
 
-  // Define the columns the widget needs
   grist.ready({
     columns: [
       { name: "Link", title: "QR Link/Data", optional: false },
-      { name: "Type", title: "Asset Type", optional: false },
+      { name: "Type", title: "Asset Type", optional: false }, // This is your Reference Column
       { name: "Brand", title: "Brand", optional: false }
     ],
     requiredAccess: 'read table'
@@ -67,14 +29,23 @@
     function update_view() {
       content.innerHTML = '';
       
-      // Generate QR using the 'Link' column
+      // Generate QR
       const qrCanvas = generateQRCode(record.Link);
       content.appendChild(qrCanvas);
+
+      // FIX FOR REFERENCE COLUMN:
+      // If record.Type is an object (Reference), use grist.renderValue
+      // Otherwise, use the raw value.
+      const typeText = typeof record.Type === 'object' && record.Type !== null 
+                       ? record.Type.label || Object.values(record.Type)[0] 
+                       : record.Type;
+
+      const brandText = record.Brand || "";
 
       // Create Label: Type-Brand
       const label = document.createElement('div');
       label.id = 'label';
-      label.innerText = `${record.Type}-${record.Brand}`;
+      label.innerText = `${typeText}-${brandText}`;
       
       content.appendChild(label);
     }
@@ -83,6 +54,3 @@
     update_view();
   });
 </script>
-
-</body>
-</html>
