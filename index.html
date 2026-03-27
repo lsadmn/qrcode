@@ -5,47 +5,34 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body { 
-      margin: 0; padding: 0; background: white; 
-      display: flex; flex-direction: column; 
-      align-items: center; justify-content: center; 
-      height: 100vh; font-family: sans-serif; 
-    }
-    #tag { 
-      margin-top: 15px; font-weight: bold; 
-      font-size: 1.6rem; color: black; text-align: center;
-    }
-    canvas { max-width: 80%; height: auto; }
+    body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background: white; }
+    #tag { margin-top: 10px; font-weight: bold; font-size: 1.5rem; text-align: center; }
+    canvas { max-width: 80%; }
   </style>
 </head>
 <body>
   <canvas id="qr"></canvas>
-  <div id="tag">Waiting for Mapping...</div>
+  <div id="tag">Searching for Tag...</div>
+  <script>
+    const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
+    grist.ready({ requiredAccess: 'read table' });
+    grist.onRecord(function(record) {
+      // 1. Find the QR Link
+      qr.value = record.Link || record.QR_Link || "";
+      qr.size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
 
-<script>
-  const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
-
-  grist.ready({
-    columns: [
-      { name: "Link", title: "QR Link" },
-      { name: "Tag", title: "Asset Tag" }
-    ],
-    requiredAccess: 'read table'
-  });
-
-  grist.onRecord(function(record) {
-    const tagDiv = document.getElementById('tag');
-    const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
-    qr.size = size;
-    qr.value = record.Link || "";
-
-    // This part handles the formula column result correctly
-    let val = record.Tag;
-    if (val && typeof val === 'object') {
-      val = val.label || Object.values(val)[0] || String(val);
-    }
-    tagDiv.innerText = val || "Map Column in Right Panel";
-  });
-</script>
+      // 2. AUTO-FIND the Asset Tag (Looks for any column containing "SN-")
+      let foundTag = "Please Map Asset Tag";
+      for (let key in record) {
+        let val = record[key];
+        if (val && typeof val === 'object') val = val.label || Object.values(val)[0];
+        if (String(val).includes("SN-")) {
+          foundTag = val;
+          break;
+        }
+      }
+      document.getElementById('tag').innerText = foundTag;
+    });
+  </script>
 </body>
 </html>
