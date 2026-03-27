@@ -1,8 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  
+  <style>
+    body {
+      margin: 0; padding: 10px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100vh; background-color: white;
+      font-family: sans-serif;
+    }
+    #content {
+      display: flex; flex-direction: column;
+      align-items: center; text-align: center;
+    }
+    .label-text {
+      margin-top: 8px;
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: black;
+    }
+    .tag-text {
+      font-size: 1rem;
+      margin-top: 2px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<div id="content"></div>
+
 <script>
   function generateQRCode(qrData) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const size = 0.75 * Math.min(vw, vh);
+    const size = 0.70 * Math.min(vw, vh); // Adjusted to leave room for two lines of text
     
     const canvas = document.createElement('canvas');
     new QRious({
@@ -16,9 +52,10 @@
 
   grist.ready({
     columns: [
-      { name: "Link", title: "QR Link/Data", optional: false },
-      { name: "Type", title: "Asset Type", optional: false }, // This is your Reference Column
-      { name: "Brand", title: "Brand", optional: false }
+      { name: "Link", title: "QR Link" },
+      { name: "Type", title: "Asset Type" },
+      { name: "Brand", title: "Brand" },
+      { name: "Tag", title: "Asset Tag" } // Ensure this matches your mapping
     ],
     requiredAccess: 'read table'
   });
@@ -29,28 +66,30 @@
     function update_view() {
       content.innerHTML = '';
       
-      // Generate QR
-      const qrCanvas = generateQRCode(record.Link);
-      content.appendChild(qrCanvas);
+      // 1. QR Code
+      content.appendChild(generateQRCode(record.Link));
 
-      // FIX FOR REFERENCE COLUMN:
-      // If record.Type is an object (Reference), use grist.renderValue
-      // Otherwise, use the raw value.
-      const typeText = typeof record.Type === 'object' && record.Type !== null 
+      // 2. Asset Type - Brand
+      const typeText = (typeof record.Type === 'object' && record.Type !== null) 
                        ? record.Type.label || Object.values(record.Type)[0] 
                        : record.Type;
-
-      const brandText = record.Brand || "";
-
-      // Create Label: Type-Brand
-      const label = document.createElement('div');
-      label.id = 'label';
-      label.innerText = `${typeText}-${brandText}`;
       
-      content.appendChild(label);
+      const line1 = document.createElement('div');
+      line1.className = 'label-text';
+      line1.innerText = `${typeText}-${record.Brand}`;
+      content.appendChild(line1);
+
+      // 3. Asset Tag (New Line)
+      const line2 = document.createElement('div');
+      line2.className = 'tag-text';
+      line2.innerText = record.Tag || ""; 
+      content.appendChild(line2);
     }
 
     window.addEventListener("resize", update_view);
     update_view();
   });
 </script>
+
+</body>
+</html>
