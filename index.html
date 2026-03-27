@@ -39,8 +39,8 @@
     qr.size = size;
     qr.value = record.Link || "";
 
+    // This part handles the formula column result correctly
     let val = record.Tag;
-    // Extract text even if it's a formula or reference object
     if (val && typeof val === 'object') {
       val = val.label || Object.values(val)[0] || String(val);
     }
