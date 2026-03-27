@@ -8,7 +8,7 @@
   <style>
     body {
       margin: 0;
-      padding: 10px;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -24,7 +24,7 @@
       text-align: center;
     }
     #tag-label {
-      margin-top: 15px;
+      margin-top: 10px;
       font-weight: bold;
       font-size: 1.4rem;
       color: black;
@@ -39,7 +39,8 @@
   function generateQRCode(qrData) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const size = 0.75 * Math.min(vw, vh); 
+    // Use 70% of the screen to leave plenty of room for the tag below
+    const size = 0.70 * Math.min(vw, vh); 
     
     const canvas = document.createElement('canvas');
     new QRious({
@@ -51,6 +52,7 @@
     return canvas;
   }
 
+  // We only define two columns now to simplify the mapping
   grist.ready({
     columns: [
       { name: "Link", title: "QR Link" },
@@ -65,23 +67,24 @@
     function update_view() {
       content.innerHTML = '';
       
-      // 1. Render QR Code
+      // 1. Render the QR Code based on the Link column
       content.appendChild(generateQRCode(record.Link));
 
-      // 2. Handle Asset Tag (including Reference Columns)
+      // 2. Cleanly extract the Asset Tag (handle if it's a reference)
       let displayTag = "";
       if (record.Tag) {
-        // If it's a reference object, get the label; otherwise get raw value
         displayTag = (typeof record.Tag === 'object') 
                      ? record.Tag.label || Object.values(record.Tag)[0] 
                      : record.Tag;
       }
 
-      // 3. Render Tag Text below QR
-      const label = document.createElement('div');
-      label.id = 'tag-label';
-      label.innerText = displayTag;
-      content.appendChild(label);
+      // 3. Create the text label below the QR
+      if (displayTag) {
+        const label = document.createElement('div');
+        label.id = 'tag-label';
+        label.innerText = displayTag;
+        content.appendChild(label);
+      }
     }
 
     window.addEventListener("resize", update_view);
