@@ -1,37 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    #label {
+      margin-top: 10px;
+      font-family: sans-serif;
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<div id="content"></div>
+
 <script>
-  function qrcode (qr) {
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
-    const size = .92 * Math.min(vw, vh)
+  function generateQRCode(qrData) {
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    // Reduce size slightly more to make room for text below
+    const size = 0.80 * Math.min(vw, vh);
+    
     const canvas = document.createElement('canvas');
-    new QRious ({
+    new QRious({
       element: canvas,
       level: 'L',
-      size,
-      value: qr
+      size: size,
+      value: qrData
     });
     return canvas;
   }
 
+  // Map the specific columns from your Grist table
   grist.ready({
-    columns: ['Asset Type', 'Asset Tag'],
+    columns: ['Asset Type', 'Brand', 'Link'], 
     requiredAccess: 'read table'
   });
 
   grist.onRecord(function(record) {
     const content = document.getElementById('content');
+    const mapped = grist.mapColumnNames(record);
 
-    const { 'Asset Type': assetType, 'Asset Tag': assetTag } = grist.mapColumnNames(record);
-
-    function update_qr () {
+    function update_view() {
       content.innerHTML = '';
 
-      const combined = `${assetType}-${assetTag}`;
+      // 1. Generate the QR Code (usually linked to the URL/ID)
+      // If you want the QR to contain the Link column, use mapped.Link
+      const qrCanvas = generateQRCode(mapped.Link || "No Data");
+      content.appendChild(qrCanvas);
 
-      content.appendChild(qrcode(combined));
-    };
+      // 2. Create the Text Label (Asset Type - Brand)
+      const label = document.createElement('div');
+      label.id = 'label';
+      label.innerText = `${mapped.Asset_Type}-${mapped.Brand}`;
+      
+      content.appendChild(label);
+    }
 
-    window.addEventListener("resize", update_qr);
-    update_qr();
+    window.addEventListener("resize", update_view);
+    update_view();
   });
 </script>
+
+</body>
+</html>
