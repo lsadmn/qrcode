@@ -4,55 +4,26 @@
   <meta charset="utf-8">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background-color: white;
-      font-family: sans-serif;
+    body { 
+      margin: 0; padding: 0; background: white; 
+      display: flex; flex-direction: column; 
+      align-items: center; justify-content: center; 
+      height: 100vh; font-family: sans-serif; 
     }
-    #content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-    #tag-label {
-      margin-top: 10px;
-      font-weight: bold;
-      font-size: 1.4rem;
-      color: black;
-    }
+    #container { display: flex; flex-direction: column; align-items: center; }
+    #tag { margin-top: 10px; font-weight: bold; font-size: 1.5rem; color: black; }
   </style>
 </head>
 <body>
-
-<div id="content"></div>
+  <div id="container">
+    <canvas id="qr"></canvas>
+    <div id="tag"></div>
+  </div>
 
 <script>
-  function generateQRCode(qrData) {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    // Use 70% of the screen to leave plenty of room for the tag below
-    const size = 0.70 * Math.min(vw, vh); 
-    
-    const canvas = document.createElement('canvas');
-    new QRious({
-      element: canvas,
-      level: 'H',
-      size: size,
-      value: qrData || ""
-    });
-    return canvas;
-  }
+  const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
 
-  // We only define two columns now to simplify the mapping
   grist.ready({
     columns: [
       { name: "Link", title: "QR Link" },
@@ -62,35 +33,23 @@
   });
 
   grist.onRecord(function(record) {
-    const content = document.getElementById('content');
+    // 1. Update QR Code
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    qr.size = 0.70 * Math.min(vw, vh);
+    qr.value = record.Link || "";
+
+    // 2. Update Tag Text
+    const tagDiv = document.getElementById('tag');
+    let val = record.Tag;
     
-    function update_view() {
-      content.innerHTML = '';
-      
-      // 1. Render the QR Code based on the Link column
-      content.appendChild(generateQRCode(record.Link));
-
-      // 2. Cleanly extract the Asset Tag (handle if it's a reference)
-      let displayTag = "";
-      if (record.Tag) {
-        displayTag = (typeof record.Tag === 'object') 
-                     ? record.Tag.label || Object.values(record.Tag)[0] 
-                     : record.Tag;
-      }
-
-      // 3. Create the text label below the QR
-      if (displayTag) {
-        const label = document.createElement('div');
-        label.id = 'tag-label';
-        label.innerText = displayTag;
-        content.appendChild(label);
-      }
+    // Simple fix for Reference Columns
+    if (val && typeof val === 'object') {
+      val = val.label || Object.values(val)[0];
     }
-
-    window.addEventListener("resize", update_view);
-    update_view();
+    
+    tagDiv.innerText = val || "";
   });
 </script>
-
 </body>
 </html>
