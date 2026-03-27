@@ -5,34 +5,88 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background: white; }
-    #tag { margin-top: 10px; font-weight: bold; font-size: 1.5rem; text-align: center; }
-    canvas { max-width: 80%; }
+    body { 
+      margin: 0; padding: 10px; display: flex; flex-direction: column; 
+      align-items: center; justify-content: center; height: 100vh; 
+      font-family: sans-serif; background: white; overflow: hidden;
+    }
+    #label-container { 
+      display: flex; flex-direction: column; align-items: center; 
+      background: white; padding: 10px; border: 1px solid #eee;
+    }
+    #tag { margin-top: 10px; font-weight: bold; font-size: 1.4rem; text-align: center; color: black; }
+    canvas { max-width: 100%; height: auto; }
+    
+    #controls { margin-top: 20px; }
+    button { 
+      padding: 8px 16px; cursor: pointer; background: #007bff; 
+      color: white; border: none; border-radius: 4px; font-weight: bold;
+    }
+    button:hover { background: #0056b3; }
   </style>
 </head>
 <body>
-  <canvas id="qr"></canvas>
-  <div id="tag">Searching for Tag...</div>
+
+  <div id="label-container">
+    <canvas id="qr"></canvas>
+    <div id="tag">Loading...</div>
+  </div>
+
+  <div id="controls">
+    <button onclick="downloadLabel()">Download Label</button>
+  </div>
+
   <script>
     const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
-    grist.ready({ requiredAccess: 'read table' });
-    grist.onRecord(function(record) {
-      // 1. Find the QR Link
-      qr.value = record.Link || record.QR_Link || "";
-      qr.size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
 
-      // 2. AUTO-FIND the Asset Tag (Looks for any column containing "SN-")
-      let foundTag = "Please Map Asset Tag";
-      for (let key in record) {
-        let val = record[key];
-        if (val && typeof val === 'object') val = val.label || Object.values(val)[0];
-        if (String(val).includes("SN-")) {
-          foundTag = val;
-          break;
-        }
-      }
-      document.getElementById('tag').innerText = foundTag;
+    grist.ready({
+      columns: [{ name: "Link", title: "QR Link" }, { name: "Tag", title: "Asset Tag" }],
+      requiredAccess: 'read table'
     });
+
+    grist.onRecord(function(record) {
+      // 1. Update QR
+      const size = Math.min(window.innerWidth, window.innerHeight) * 0.6;
+      qr.size = size;
+      qr.value = record.Link || "";
+
+      // 2. Update Tag
+      let val = record.Tag;
+      if (val && typeof val === 'object') val = val.label || Object.values(val)[0];
+      document.getElementById('tag').innerText = val || "";
+    });
+
+    function downloadLabel() {
+      const container = document.getElementById('label-container');
+      const canvas = document.getElementById('qr');
+      const tagText = document.getElementById('tag').innerText;
+      
+      // Create a temporary canvas to merge text and QR
+      const finalCanvas = document.createElement('canvas');
+      const ctx = finalCanvas.getContext('2d');
+      
+      finalCanvas.width = canvas.width + 40;
+      finalCanvas.height = canvas.height + 80;
+      
+      // Fill Background
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+      
+      // Draw QR
+      ctx.drawImage(canvas, 20, 20);
+      
+      // Draw Text
+      ctx.fillStyle = "black";
+      ctx.font = "bold 24px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(tagText, finalCanvas.width / 2, canvas.height + 60);
+      
+      // Download
+      const link = document.createElement('a');
+      link.download = tagText + '-label.png';
+      link.href = finalCanvas.toDataURL();
+      link.click();
+    }
   </script>
 </body>
 </html>
