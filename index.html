@@ -11,14 +11,21 @@
       align-items: center; justify-content: center; 
       height: 100vh; font-family: sans-serif; 
     }
-    #container { display: flex; flex-direction: column; align-items: center; }
-    #tag { margin-top: 10px; font-weight: bold; font-size: 1.5rem; color: black; }
+    #container { display: flex; flex-direction: column; align-items: center; width: 100%; }
+    #tag { 
+      margin-top: 15px; 
+      font-weight: bold; 
+      font-size: 1.6rem; 
+      color: black; 
+      min-height: 1.6em; /* Keeps space even if empty */
+    }
+    canvas { max-width: 90%; height: auto; }
   </style>
 </head>
 <body>
   <div id="container">
     <canvas id="qr"></canvas>
-    <div id="tag"></div>
+    <div id="tag">Loading Tag...</div>
   </div>
 
 <script>
@@ -33,22 +40,27 @@
   });
 
   grist.onRecord(function(record) {
-    // 1. Update QR Code
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    qr.size = 0.70 * Math.min(vw, vh);
-    qr.value = record.Link || "";
-
-    // 2. Update Tag Text
     const tagDiv = document.getElementById('tag');
-    let val = record.Tag;
-    
-    // Simple fix for Reference Columns
-    if (val && typeof val === 'object') {
-      val = val.label || Object.values(val)[0];
+
+    // 1. Update QR
+    const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
+    qr.size = size;
+    qr.value = record.Link || "No Data";
+
+    // 2. Robust Tag Extraction
+    let rawVal = record.Tag;
+    let finalLabel = "";
+
+    if (rawVal !== null && rawVal !== undefined) {
+      if (typeof rawVal === 'object') {
+        // Handle Reference or complex formula objects
+        finalLabel = rawVal.label || Object.values(rawVal)[0] || String(rawVal);
+      } else {
+        finalLabel = String(rawVal);
+      }
     }
-    
-    tagDiv.innerText = val || "";
+
+    tagDiv.innerText = finalLabel || "Waiting for Mapping...";
   });
 </script>
 </body>
