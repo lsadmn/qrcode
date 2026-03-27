@@ -7,20 +7,26 @@
   
   <style>
     body {
-      margin: 0; padding: 10px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      height: 100vh; background-color: white;
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: white;
       font-family: sans-serif;
     }
     #content {
-      display: flex; flex-direction: column;
-      align-items: center; text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
     }
     #tag-label {
       margin-top: 15px;
       font-weight: bold;
-      font-size: 1.4rem; /* Larger for easy reading */
+      font-size: 1.4rem;
       color: black;
     }
   </style>
@@ -59,18 +65,19 @@
     function update_view() {
       content.innerHTML = '';
       
-      // 1. QR Code
+      // 1. Render QR Code
       content.appendChild(generateQRCode(record.Link));
 
-      // 2. Asset Tag Logic (Handling Reference Columns)
+      // 2. Handle Asset Tag (including Reference Columns)
       let displayTag = "";
       if (record.Tag) {
+        // If it's a reference object, get the label; otherwise get raw value
         displayTag = (typeof record.Tag === 'object') 
                      ? record.Tag.label || Object.values(record.Tag)[0] 
                      : record.Tag;
       }
 
-      // 3. Render Tag below QR
+      // 3. Render Tag Text below QR
       const label = document.createElement('div');
       label.id = 'tag-label';
       label.innerText = displayTag;
