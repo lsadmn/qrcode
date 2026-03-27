@@ -5,88 +5,74 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body { 
-      margin: 0; padding: 10px; display: flex; flex-direction: column; 
-      align-items: center; justify-content: center; height: 100vh; 
-      font-family: sans-serif; background: white; overflow: hidden;
-    }
-    #label-container { 
-      display: flex; flex-direction: column; align-items: center; 
-      background: white; padding: 10px; border: 1px solid #eee;
-    }
-    #tag { margin-top: 10px; font-weight: bold; font-size: 1.4rem; text-align: center; color: black; }
-    canvas { max-width: 100%; height: auto; }
-    
-    #controls { margin-top: 20px; }
-    button { 
-      padding: 8px 16px; cursor: pointer; background: #007bff; 
-      color: white; border: none; border-radius: 4px; font-weight: bold;
-    }
+    body { margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background: white; }
+    #label-wrap { display: flex; flex-direction: column; align-items: center; background: white; padding: 10px; }
+    #tag { margin-top: 10px; font-weight: bold; font-size: 1.5rem; text-align: center; }
+    #controls { margin-top: 15px; display: flex; gap: 10px; }
+    button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; }
     button:hover { background: #0056b3; }
+    #status { margin-top: 5px; font-size: 0.8rem; color: green; height: 1em; }
   </style>
 </head>
 <body>
 
-  <div id="label-container">
+  <div id="label-wrap">
     <canvas id="qr"></canvas>
     <div id="tag">Loading...</div>
   </div>
 
   <div id="controls">
-    <button onclick="downloadLabel()">Download Label</button>
+    <button onclick="copyLabel()">Copy Label</button>
   </div>
+  <div id="status" id="statusMsg"></div>
 
-  <script>
-    const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
+<script>
+  const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
+  grist.ready({ requiredAccess: 'read table' });
 
-    grist.ready({
-      columns: [{ name: "Link", title: "QR Link" }, { name: "Tag", title: "Asset Tag" }],
-      requiredAccess: 'read table'
-    });
-
-    grist.onRecord(function(record) {
-      // 1. Update QR
-      const size = Math.min(window.innerWidth, window.innerHeight) * 0.6;
-      qr.size = size;
-      qr.value = record.Link || "";
-
-      // 2. Update Tag
-      let val = record.Tag;
-      if (val && typeof val === 'object') val = val.label || Object.values(val)[0];
-      document.getElementById('tag').innerText = val || "";
-    });
-
-    function downloadLabel() {
-      const container = document.getElementById('label-container');
-      const canvas = document.getElementById('qr');
-      const tagText = document.getElementById('tag').innerText;
-      
-      // Create a temporary canvas to merge text and QR
-      const finalCanvas = document.createElement('canvas');
-      const ctx = finalCanvas.getContext('2d');
-      
-      finalCanvas.width = canvas.width + 40;
-      finalCanvas.height = canvas.height + 80;
-      
-      // Fill Background
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-      
-      // Draw QR
-      ctx.drawImage(canvas, 20, 20);
-      
-      // Draw Text
-      ctx.fillStyle = "black";
-      ctx.font = "bold 24px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(tagText, finalCanvas.width / 2, canvas.height + 60);
-      
-      // Download
-      const link = document.createElement('a');
-      link.download = tagText + '-label.png';
-      link.href = finalCanvas.toDataURL();
-      link.click();
+  grist.onRecord(function(record) {
+    qr.size = Math.min(window.innerWidth, window.innerHeight) * 0.6;
+    qr.value = record.Link || record.QR_Link || "";
+    
+    let val = record.Tag;
+    for (let key in record) {
+      if (String(record[key]).includes("SN-")) { val = record[key]; break; }
     }
-  </script>
+    document.getElementById('tag').innerText = val || "";
+  });
+
+  async function copyLabel() {
+    const canvas = document.getElementById('qr');
+    const tagText = document.getElementById('tag').innerText;
+    const msg = document.getElementById('status');
+    
+    // Create a combined canvas
+    const offscreen = document.createElement('canvas');
+    const ctx = offscreen.getContext('2d');
+    offscreen.width = canvas.width + 40;
+    offscreen.height = canvas.height + 80;
+    
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+    ctx.drawImage(canvas, 20, 20);
+    ctx.fillStyle = "black";
+    ctx.font = "bold 24px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(tagText, offscreen.width / 2, canvas.height + 60);
+
+    // Copy to clipboard
+    offscreen.toBlob(async (blob) => {
+      try {
+        const data = [new ClipboardItem({ "image/png": blob })];
+        await navigator.clipboard.write(data);
+        msg.innerText = "Copied to clipboard!";
+        setTimeout(() => msg.innerText = "", 2000);
+      } catch (err) {
+        msg.style.color = "red";
+        msg.innerText = "Copy failed. Browser blocked.";
+      }
+    });
+  }
+</script>
 </body>
 </html>
