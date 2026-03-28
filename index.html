@@ -5,35 +5,53 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body { margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; background: white; }
-    #label-wrap { display: flex; flex-direction: column; align-items: center; background: white; padding: 10px; }
-    #tag { margin-top: 10px; font-weight: bold; font-size: 1.5rem; text-align: center; }
-    #controls { margin-top: 15px; display: flex; gap: 10px; }
-    button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; }
-    button:hover { background: #0056b3; }
-    #status { margin-top: 5px; font-size: 0.8rem; color: green; height: 1em; }
+    /* Minimal margins to use every pixel of the sticker */
+    body { 
+      margin: 0; padding: 2px; display: flex; flex-direction: column; 
+      align-items: center; justify-content: center; height: 100vh; 
+      font-family: sans-serif; background: white; overflow: hidden;
+    }
+    #label-wrap { 
+      display: flex; flex-direction: column; align-items: center; 
+      background: white; padding: 2px; 
+    }
+    #tag { 
+      margin-top: 2px; font-weight: bold; font-size: 1.4rem; 
+      text-align: center; color: black; line-height: 1;
+    }
+    canvas { display: block; }
+    
+    #controls { margin-top: 8px; }
+    button { 
+      padding: 5px 10px; cursor: pointer; background: #007bff; 
+      color: white; border: none; border-radius: 3px; font-size: 0.8rem;
+    }
+    #status { font-size: 0.7rem; color: green; margin-top: 2px; height: 1em; }
   </style>
 </head>
 <body>
 
   <div id="label-wrap">
     <canvas id="qr"></canvas>
-    <div id="tag">Loading...</div>
+    <div id="tag">...</div>
   </div>
 
   <div id="controls">
     <button onclick="copyLabel()">Copy Label</button>
   </div>
-  <div id="status" id="statusMsg"></div>
+  <div id="status"></div>
 
 <script>
   const qr = new QRious({ element: document.getElementById('qr'), level: 'H' });
   grist.ready({ requiredAccess: 'read table' });
 
   grist.onRecord(function(record) {
-    qr.size = Math.min(window.innerWidth, window.innerHeight) * 0.6;
+    // Increase QR size to fill almost the entire width
+    const size = Math.min(window.innerWidth, window.innerHeight) * 0.85;
+    qr.size = size;
     qr.value = record.Link || record.QR_Link || "";
     
+    // Auto-find tag
     let val = record.Tag;
     for (let key in record) {
       if (String(record[key]).includes("SN-")) { val = record[key]; break; }
@@ -46,30 +64,30 @@
     const tagText = document.getElementById('tag').innerText;
     const msg = document.getElementById('status');
     
-    // Create a combined canvas
     const offscreen = document.createElement('canvas');
     const ctx = offscreen.getContext('2d');
-    offscreen.width = canvas.width + 40;
-    offscreen.height = canvas.height + 80;
+    
+    // Tiny edges for the copy-paste image
+    offscreen.width = canvas.width + 10;
+    offscreen.height = canvas.height + 40;
     
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, offscreen.width, offscreen.height);
-    ctx.drawImage(canvas, 20, 20);
+    ctx.drawImage(canvas, 5, 5);
     ctx.fillStyle = "black";
-    ctx.font = "bold 24px Arial";
+    ctx.font = "bold 20px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(tagText, offscreen.width / 2, canvas.height + 60);
+    ctx.fillText(tagText, offscreen.width / 2, canvas.height + 30);
 
-    // Copy to clipboard
     offscreen.toBlob(async (blob) => {
       try {
         const data = [new ClipboardItem({ "image/png": blob })];
         await navigator.clipboard.write(data);
-        msg.innerText = "Copied to clipboard!";
-        setTimeout(() => msg.innerText = "", 2000);
+        msg.innerText = "Copied!";
+        setTimeout(() => msg.innerText = "", 1500);
       } catch (err) {
         msg.style.color = "red";
-        msg.innerText = "Copy failed. Browser blocked.";
+        msg.innerText = "Error: Browser Blocked";
       }
     });
   }
