@@ -5,28 +5,30 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    /* Minimal margins to use every pixel of the sticker */
     body { 
-      margin: 0; padding: 2px; display: flex; flex-direction: column; 
+      margin: 0; padding: 0; display: flex; flex-direction: column; 
       align-items: center; justify-content: center; height: 100vh; 
       font-family: sans-serif; background: white; overflow: hidden;
     }
     #label-wrap { 
       display: flex; flex-direction: column; align-items: center; 
-      background: white; padding: 2px; 
+      background: white; padding: 0; 
     }
     #tag { 
-      margin-top: 2px; font-weight: bold; font-size: 1.4rem; 
+      margin-top: 0px; 
+      font-weight: 900; /* Extra Bold */
+      font-size: 2.8rem; /* Doubled size */
       text-align: center; color: black; line-height: 1;
+      letter-spacing: -1px; /* Tighter letters for long serials */
     }
     canvas { display: block; }
     
-    #controls { margin-top: 8px; }
+    #controls { margin-top: 5px; }
     button { 
-      padding: 5px 10px; cursor: pointer; background: #007bff; 
-      color: white; border: none; border-radius: 3px; font-size: 0.8rem;
+      padding: 4px 8px; cursor: pointer; background: #007bff; 
+      color: white; border: none; border-radius: 3px; font-size: 0.7rem;
     }
-    #status { font-size: 0.7rem; color: green; margin-top: 2px; height: 1em; }
+    #status { font-size: 0.6rem; color: green; height: 1em; }
   </style>
 </head>
 <body>
@@ -46,12 +48,11 @@
   grist.ready({ requiredAccess: 'read table' });
 
   grist.onRecord(function(record) {
-    // Increase QR size to fill almost the entire width
-    const size = Math.min(window.innerWidth, window.innerHeight) * 0.85;
+    // Fill the width as much as possible to leave room for the big text
+    const size = Math.min(window.innerWidth, window.innerHeight) * 0.75;
     qr.size = size;
     qr.value = record.Link || record.QR_Link || "";
     
-    // Auto-find tag
     let val = record.Tag;
     for (let key in record) {
       if (String(record[key]).includes("SN-")) { val = record[key]; break; }
@@ -67,17 +68,18 @@
     const offscreen = document.createElement('canvas');
     const ctx = offscreen.getContext('2d');
     
-    // Tiny edges for the copy-paste image
-    offscreen.width = canvas.width + 10;
-    offscreen.height = canvas.height + 40;
+    // Create high-res canvas for crisp printing
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height + 60;
     
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, offscreen.width, offscreen.height);
-    ctx.drawImage(canvas, 5, 5);
+    ctx.drawImage(canvas, 0, 0);
+    
     ctx.fillStyle = "black";
-    ctx.font = "bold 20px Arial";
+    ctx.font = "900 42px Arial"; // Huge font for the copied image
     ctx.textAlign = "center";
-    ctx.fillText(tagText, offscreen.width / 2, canvas.height + 30);
+    ctx.fillText(tagText, offscreen.width / 2, canvas.height + 45);
 
     offscreen.toBlob(async (blob) => {
       try {
@@ -87,7 +89,7 @@
         setTimeout(() => msg.innerText = "", 1500);
       } catch (err) {
         msg.style.color = "red";
-        msg.innerText = "Error: Browser Blocked";
+        msg.innerText = "Error";
       }
     });
   }
